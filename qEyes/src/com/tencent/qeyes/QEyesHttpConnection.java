@@ -1,3 +1,9 @@
+/**
+ * Http协议调用与封装
+ * Author: minjieyu
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 import org.json.JSONException;
@@ -5,10 +11,6 @@ import org.json.JSONObject;
 
 import android.os.Handler;
 import android.util.Log;
-
-/**
- * QEyes相关的Http协议类
- */
 
 public class QEyesHttpConnection extends HttpConnection implements MsgType {
 	private static final String SERVER_IP = "http://203.195.190.137";
@@ -40,7 +42,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		String response = httpUpload(url, fileName, uid);
 		Log.v("-Http-", "Upload Response: " + response);
 		
-		if (response != "")
+		if (response != null)
 		{
 			JSONObject json = null;
 			try {
@@ -74,9 +76,9 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id));		
 		Log.v("-Http-", "Send Terminate Request : " + url);
 		
-		String response = httpGetResponse(url);
+		String response = httpGetResponse(url, 2);
 		Log.v("-Http-", "Terminate Response: " + response);
-		if (response != "")
+		if (response != null)
 		{
 			JSONObject json = null;
 			try {
@@ -104,11 +106,11 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		url = url.concat(CHECK_ANS_URL).concat("?q_id=").concat(String.valueOf(q_id));
 		Log.v("-Http-", "Send CheckAns Request : " + url);
 		
-		String response = httpGetResponse(url);
+		String response = httpGetResponse(url, 0);
 		Log.v("-Http-", "CheckAns Response: " + response);		
 
 		QEyesHttpResults results = new QEyesHttpResults();
-		if (response != "")
+		if (response != null)
 		{
 			JSONObject json = null;
 			try {
@@ -151,9 +153,9 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		.concat("&score=").concat(String.valueOf(score));		
 		Log.v("-Http-", "Send Comment Request : " + url);
 		
-		String response = httpGetResponse(url);
+		String response = httpGetResponse(url, 2);
 		Log.v("-Http-", "Comment Response: " + response);
-		if (response != "")
+		if (response != null)
 		{
 			JSONObject json = null;
 			try {

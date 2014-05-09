@@ -1,3 +1,9 @@
+/**
+ * QEyes状态机
+ * Author: richardfeng
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 import java.util.Timer;
@@ -24,6 +30,7 @@ public class QEyesStateMachine implements MsgType {
 		STATE_SPEAKING_RESULTS,		//朗读结果
 		STATE_EVALUATE_PHASE_ONE,	//评价步骤1
 		STATE_EVALUATE_PHASE_TWO,	//评价步骤2
+		STATE_EVALUATE_STOP,     	//程序切换到后台
 		STATE_EVALUATE_EXIT     	//程序退出
 	}
 	
@@ -52,6 +59,8 @@ public class QEyesStateMachine implements MsgType {
 	}
 	
 	public boolean setState(State s) {
+		if (curState == State.STATE_EVALUATE_EXIT)
+			return true;
 		curState = s;		
 		enterState(curState);
 		return true;

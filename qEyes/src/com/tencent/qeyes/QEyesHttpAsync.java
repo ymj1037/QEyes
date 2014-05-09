@@ -1,3 +1,9 @@
+/**
+ * Http协议异步调用
+ * Author: minjieyu
+ * Date:2014/5.9
+ * Version:0.9
+ */
 package com.tencent.qeyes;
 
 import java.util.Timer;

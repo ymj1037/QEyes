@@ -1,3 +1,9 @@
+/**
+ * 文本转语音模块
+ * Author: minjieyu
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 import java.util.HashMap;

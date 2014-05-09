@@ -1,10 +1,14 @@
-/***
- * Author minjieyu
- * Date 2014/05/09
+/**
+ * 播放音频文件
+ * Author: minjieyu
+ * Date:2014/5.9
+ * Version:1.0
  */
 package com.tencent.qeyes;
 
+import android.R.integer;
 import android.content.Context;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 
@@ -14,8 +18,8 @@ import android.net.Uri;
 
 public class AudioSpeaker {
 	private Context context;
-	public MediaPlayer mPlayer;
-	
+	public MediaPlayer mPlayer; 
+		
 	public AudioSpeaker(final Context context) {     
 		this.context = context;        
 		}         

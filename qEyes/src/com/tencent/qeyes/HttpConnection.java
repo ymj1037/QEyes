@@ -1,3 +1,9 @@
+/**
+ * Http协议基类
+ * Author: minjieyu
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 import java.io.File;
@@ -17,45 +23,64 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
-/**
- * Http协议基类
- */
+import android.R.integer;
+import android.util.Log;
 
 public class HttpConnection {
+	static final int CONNECTION_TIMEOUT = 3000;
+	static final int SO_TIMEOUT = 5000;
+	static final int RETRY_TIMES = 2;
 	
-	public String httpUpload(String url, String filePath, String uid/*List<NameValuePair> params*/) {
+	/**
+	 * 上传图片
+	 * @param url http上传地址
+	 * @param filePath 上传文件路径
+	 * @param uid 
+	 * @return http response
+	 */
+	public String httpUpload(String url, String filePath, String uid) {		
+		String response = null;
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		HttpClient httpClient = new DefaultHttpClient();
-		String response = "";
 		try
 		{				   
 			//设置通信协议版本				   
-			httpClient.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
-				   
+			//httpClient.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+			HttpParams params=httpClient.getParams(); 
+			//设置超时参数
+			HttpConnectionParams.setConnectionTimeout(params, CONNECTION_TIMEOUT);
+			HttpConnectionParams.setSoTimeout(params, SO_TIMEOUT); 
+			//post请求
 			HttpPost httpPost = new HttpPost(url);
 			File file = new File(filePath);
 			if (!file.exists())
 				return response;
-			MultipartEntity mpEntity = new MultipartEntity(); //文件传输
+			MultipartEntity mpEntity = new MultipartEntity(); //文件传输，模拟form表单
 			ContentBody cbFile = new FileBody(file);
-			mpEntity.addPart(
-                    "uid",
-                    new StringBody(uid, Charset
-                                    .forName(org.apache.http.protocol.HTTP.UTF_8)));
-
-			mpEntity.addPart("q_img", cbFile); 
-
+			mpEntity.addPart("uid", new StringBody(uid, 
+                    		Charset.forName(org.apache.http.protocol.HTTP.UTF_8)));
+			mpEntity.addPart("q_img", cbFile);
 			httpPost.setEntity(mpEntity);
-			System.out.println("executing request " + httpPost.getRequestLine());
-				   
+			//上传
 			HttpResponse httpResponse = httpClient.execute(httpPost);
-
-			if (httpResponse.getStatusLine().getStatusCode() == 200)
+			
+			Log.v("-Http-", "StatusCode: " + httpResponse.getStatusLine().getStatusCode());
+			/*while (httpResponse.getStatusLine().getStatusCode() != 200 && flag < RETRY_TIMES)
 			{
-				response = EntityUtils.toString(httpResponse.getEntity());
-			}
+				Log.v("-Http-", "StatusCode: " + httpResponse.getStatusLine().getStatusCode());
+				httpClient.getConnectionManager()..shutdown();
+				httpResponse = httpClient.execute(httpPost);
+				flag++;
+			}*/
+			if (httpResponse.getStatusLine().getStatusCode() == 200 )
+			{
+				response = EntityUtils.toString(httpResponse.getEntity());				
+			}	
 			httpClient.getConnectionManager().shutdown();
 			return response;
 		}
@@ -66,22 +91,38 @@ public class HttpConnection {
 		}
 	}
 	
-	public void httpDownload(String url, String filePath) {
+	/**
+	 * http get请求
+	 * @param uri
+	 * @return http response
+	 */
+	public String httpGetResponse(String uri, int retryTimes) {
+		String response = null;
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
+		HttpClient httpClient = new DefaultHttpClient();	
 		
-	}
-	
-	public String httpGetResponse(String uri) {
-		HttpClient httpClient = new DefaultHttpClient();
-		String response = "";
+		if (retryTimes > RETRY_TIMES)
+			retryTimes = RETRY_TIMES;//重传次数不超过RETRY_TIMES
+		
 		try
 		{
 			HttpGet get = new HttpGet(uri);
+			HttpParams params=httpClient.getParams(); 
+			HttpConnectionParams.setConnectionTimeout(params, CONNECTION_TIMEOUT);
+			HttpConnectionParams.setSoTimeout(params, SO_TIMEOUT); 
+			//执行get请求
 			HttpResponse httpResponse = httpClient.execute(get);
 			//HttpEntity entity = httpResponse.getEntity();
-			if (httpResponse.getStatusLine().getStatusCode() == 200)
+			/*while (httpResponse.getStatusLine().getStatusCode() != 200 && flag < retryTimes)
 			{
-				response = EntityUtils.toString(httpResponse.getEntity());
-			}
+				httpClient.getConnectionManager().shutdown();
+				httpResponse = httpClient.execute(get);
+				flag++;
+			}*/
+			if (httpResponse.getStatusLine().getStatusCode() == 200 )
+			{
+				response = EntityUtils.toString(httpResponse.getEntity());				
+			}	
 			httpClient.getConnectionManager().shutdown();
 			return response;
 		}
@@ -92,18 +133,35 @@ public class HttpConnection {
 		}
 	}
 	
+	/**
+	 * http post请求
+	 * @param uri
+	 * @param params post参数
+	 * @return http response
+	 */
 	public String httpPostResponse(String uri, List<NameValuePair> params) {
+		String response = null;
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		HttpClient httpClient = new DefaultHttpClient();
-		String response = "";
 		HttpPost post = new HttpPost(uri);
 		try
 		{
+			HttpParams param=httpClient.getParams(); 
+			HttpConnectionParams.setConnectionTimeout(param, CONNECTION_TIMEOUT);
+			HttpConnectionParams.setSoTimeout(param, SO_TIMEOUT); 
 			post.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8));
 			HttpResponse httpResponse = httpClient.execute(post);
-			if (httpResponse.getStatusLine().getStatusCode() == 200)
+
+			/*while (httpResponse.getStatusLine().getStatusCode() != 200 && flag < RETRY_TIMES)
 			{
-				response = EntityUtils.toString(httpResponse.getEntity());
-			}
+				httpClient.getConnectionManager().shutdown();
+				httpResponse = httpClient.execute(post);
+				flag++;
+			}*/
+			if (httpResponse.getStatusLine().getStatusCode() == 200 )
+			{
+				response = EntityUtils.toString(httpResponse.getEntity());				
+			}	
 			httpClient.getConnectionManager().shutdown();
 			return response;
 		}

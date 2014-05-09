@@ -1,3 +1,9 @@
+/**
+ * 消息类型
+ * Author: richardfeng
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 public interface MsgType {

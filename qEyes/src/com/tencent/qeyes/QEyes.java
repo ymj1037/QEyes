@@ -1,3 +1,9 @@
+/**
+ * Main Activity
+ * Author: richardfeng
+ * Date:2014/5.9
+ * Version:1.0
+ */
 package com.tencent.qeyes;
 
 import java.io.FileOutputStream;
@@ -17,6 +23,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -82,6 +89,8 @@ public class QEyes extends Activity implements MsgType {
 					break;
 				}
 				case MSG_TS: {
+					if (qState.curState == State.STATE_EVALUATE_STOP)
+						break;
 					Log.v("-Activity-", "Handler处理  MSG_TS");
 					Log.v("-Activity-", "Handler处理" + msg.obj +"123");
 					String strMsg = (String)msg.obj;
@@ -116,6 +125,7 @@ public class QEyes extends Activity implements MsgType {
 	
 	@Override
 	public void onStop() {
+		//qState.setState(State.STATE_EVALUATE_STOP);
 		qState.textSpeaker.speakBlocked("程序切换至后台!");
 		super.onStop();
 	}
@@ -155,6 +165,8 @@ public class QEyes extends Activity implements MsgType {
 		sView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		surfaceHolder = sView.getHolder();			
 		
+		setSystemMusicVolume();
+		
 		surfaceHolder.addCallback(new Callback() {
 			@Override
 			public void surfaceChanged(SurfaceHolder holder, int format,
@@ -191,7 +203,19 @@ public class QEyes extends Activity implements MsgType {
 				}
 			}
 		});		
-
+	}
+	
+	/**
+	 * 设置系统播放器音量
+	 */
+	public void setSystemMusicVolume() {
+		// 音频管理对象
+		AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+		int volume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+		int minVolume = 0;
+		int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+		if (volume == 0)//当前值为0则修改为最大值的一半，否则不变
+			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (minVolume + maxVolume)/2, 0);
 	}
 	
 	public void capture(View source) {
@@ -254,6 +278,11 @@ public class QEyes extends Activity implements MsgType {
 	//Only Listen VOlUME and HOME	
 	@Override
 	public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+		if (qState.curState == State.STATE_EVALUATE_EXIT)
+		{
+			shortPress = false;
+			return true;
+		}
 		if (keyCode == KeyEvent.KEYCODE_VOLUME_UP 
 				|| keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
 			shortPress = false;
