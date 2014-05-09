@@ -1,3 +1,7 @@
+/***
+ * Author minjieyu
+ * Date 2014/05/09
+ */
 package com.tencent.qeyes;
 
 import android.content.Context;
