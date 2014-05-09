@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Message;
 import android.os.SystemClock;
 import android.os.Vibrator;
+import android.util.Log;
 
 /**
  * Qeyes状态机和辅助函数
@@ -91,11 +92,13 @@ public class QEyesStateMachine implements MsgType {
 			}
 			case STATE_WAITING_PHASE_ONE : {
 				speak("已上传,请稍候!");
+				Log.v("-Http-", "CHeckAns case qid：" + qHttp.q_id);
 				final Timer t1 = new Timer();
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
 					@Override
 					public void run() {	
+						Log.v("-Http-", "CHeckAns run qid：" + qHttp.q_id);
 						QEyesHttpResults result = qHttp.httpCheckAns();											
 						if (result.ret == 3 || result.ret == 1) {
 							// 已被抢 或已回答
