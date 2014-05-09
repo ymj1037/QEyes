@@ -19,6 +19,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
@@ -52,7 +53,7 @@ import android.view.WindowManager;
  */
 public class QEyes extends Activity implements MsgType {
 	
-	final String FILE_NAME = "test.jpg";
+	final String FILE_NAME = "qEyes.jpg";
 
 	SurfaceView sView;
 	SurfaceHolder surfaceHolder;
@@ -71,9 +72,7 @@ public class QEyes extends Activity implements MsgType {
 		public void handleMessage(Message msg) {			
 			switch (msg.what) {
 				case TTS_INITIAL_SUCCESS : {
-					//Log.v("-Test-", "接收到TTS_INITIAL_SUCCESS这个消息");
-					QEyes.qState.textSpeaker.speakAndCallBack("欢迎使用盲人辅助软件,您可以随时长按音量键退出程序!", "INIT");
-					//QEyes.qState.setState(State.STATE_INIT);			
+					QEyes.qState.textSpeaker.speakAndCallBack("您好,您可以随时长按音量加键退出程序!", "INIT");	
 					break;
 				}
 				case MSG_QUESTION_DISPATCHED : {
@@ -134,11 +133,12 @@ public class QEyes extends Activity implements MsgType {
 	private void init() {
 
 		uid = getUID(getApplicationContext());
-		if (qHttp == null) {
-			qHttp = new QEyesHttpConnection(uid, qHandler);
-		}
 		
 		//在HOME键之后返回时可以不用重新初始化
+		if (qHttp == null) {
+			qHttp = new QEyesHttpConnection(uid, qHandler);
+		}		
+		
 		if (qState == null) {
 			qState = new QEyesStateMachine(qHttp, qHandler);
 			qState.setSpeaker(getApplicationContext());
@@ -235,7 +235,11 @@ public class QEyes extends Activity implements MsgType {
 						}, new PictureCallback() {
 							@Override
 							public void onPictureTaken(byte[] data, Camera camera) {
-								final Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
+								Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
+								Matrix matrix = new Matrix();  
+								matrix.preRotate(90); 
+								bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), 
+										bm.getHeight(), matrix, true);
 													
 								FileOutputStream outStream = null;
 								int scale = 1;
@@ -253,14 +257,7 @@ public class QEyes extends Activity implements MsgType {
 									Bitmap bitmap = BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME, newOpts);
 									outStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
 									bitmap.compress(CompressFormat.JPEG, 80, outStream);	
-									outStream.close();							
-									//Log.v("-Activity-", "图片压缩完成!");
-									
-									/*View saveDialog = getLayoutInflater().inflate(R.layout.image, null);
-									ImageView show = (ImageView) saveDialog.findViewById(R.id.jpgview);
-									Bitmap bm2 = BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME);				
-									show.setImageBitmap(bm2);*/
-									
+									outStream.close();										
 								} catch (IOException e) {
 									e.printStackTrace();
 								}	
@@ -286,9 +283,11 @@ public class QEyes extends Activity implements MsgType {
 		if (keyCode == KeyEvent.KEYCODE_VOLUME_UP 
 				|| keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
 			shortPress = false;
-			qHttp.httpTerminate();
-			qState.textSpeaker.speakAndCallBack("程序退出,欢迎您下次使用!", "EXIT");
-			qState.setState(State.STATE_EVALUATE_EXIT);
+			if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+				qHttp.httpTerminate();
+				qState.textSpeaker.speakAndCallBack("程序退出,欢迎您下次使用!", "EXIT");
+				qState.setState(State.STATE_EVALUATE_EXIT);
+			}
 		}
 		return true;
 	}
@@ -320,11 +319,9 @@ public class QEyes extends Activity implements MsgType {
 						break;
 					}
 					case STATE_PHOTO_ACQUIRED : {
-						if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-							capture(sView);
-							qState.setState(State.STATE_PHOTO_ACQUIRED);
-						} else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-							//if (true) {
+						if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+							qState.setState(State.STATE_INIT);
+						} else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
 							if(qHttp.httpUpload(getFilesDir() + "/" + FILE_NAME)) {
 								qState.setState(State.STATE_WAITING_PHASE_ONE);
 							} else {
@@ -335,6 +332,7 @@ public class QEyes extends Activity implements MsgType {
 					}
 					case STATE_UPLOAD_FAILURE : {
 						if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+							qHttp.httpTerminate();
 							if(qHttp.httpUpload(getFilesDir() + "/" + FILE_NAME)) {
 								qState.setState(State.STATE_WAITING_PHASE_ONE);
 							} else {

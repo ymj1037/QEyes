@@ -9,9 +9,12 @@ package com.tencent.qeyes;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.app.Service;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Message;
+import android.os.SystemClock;
+import android.os.Vibrator;
 
 /**
  * Qeyes状态机和辅助函数
@@ -41,6 +44,7 @@ public class QEyesStateMachine implements MsgType {
 	public String response;
 	public boolean isAudio;
 	public QEyes.MainHandler handler;
+	public Vibrator vibrator;
 	
 	QEyesStateMachine(QEyesHttpConnection qHttp, QEyes.MainHandler handler) {
 		curState = State.STATE_ZERO;
@@ -48,14 +52,15 @@ public class QEyesStateMachine implements MsgType {
 		audioSpeaker = null;
 		response = null;
 		isAudio = false;
+		vibrator = null;
 		this.qHttp = qHttp;
 		this.handler = handler;
 	}
 	
 	public void setSpeaker(Context context) {
-		//Log.v("-Test-", "已经进入setspeaker函数");
 		textSpeaker = new TextSpeaker(context, handler);
 		audioSpeaker = new AudioSpeaker(context);
+		vibrator = (Vibrator) context.getSystemService(Service.VIBRATOR_SERVICE);
 	}
 	
 	public boolean setState(State s) {
@@ -69,23 +74,23 @@ public class QEyesStateMachine implements MsgType {
 	private boolean enterState(State s) {
 		switch (s) {
 			case STATE_INIT : {
-				speak("请按音量键拍照!");				
+				speak("请按任意音量键拍照!");				
 				break;
 			}
 			case STATE_PHOTO_ACQUIRED : {
 				if (isSingleColor()) {
 					speak("识别为单色,重新拍摄请按音量加,上传请按音量减!");
 				} else {
-					speak("重新拍摄请按音量加,上传请按音量减!");
+					speak("已拍摄,上传请按音量加,取消请按音量减!");
 				}
 				break;
 			}
 			case STATE_UPLOAD_FAILURE : {
-				speak("上传失败,重新上传请按音量加,放弃请按按音量减!");
+				speak("上传失败,重试请按音量加,取消请按音量减!");
 				break;
 			}
 			case STATE_WAITING_PHASE_ONE : {
-				speak("已上传,抢单中,请耐心等待三十秒!");
+				speak("已上传,请稍候!");
 				final Timer t1 = new Timer();
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
@@ -112,7 +117,7 @@ public class QEyesStateMachine implements MsgType {
 				break;
 			}		
 			case STATE_WAITING_PHASE_TWO : {
-				speak("已被抢单，志愿者正在回答，请耐心等待六十秒!");
+				speak("对方正在输入,请稍候!");
 				final Timer t1 = new Timer();
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
@@ -144,27 +149,27 @@ public class QEyesStateMachine implements MsgType {
 				break;
 			}
 			case STATE_NO_RESPONSE : {
-				speak("暂时无人响应，重新上传请按音量加，放弃请按按音量减！");
+				speak("您的请求暂时无人应答，重试请按音量加，取消请按音量减！");
 				break;
 			}	
 			case STATE_SPEAKING_RESULTS : {
-				speak("收到志愿者回复!");
+				vibrator.vibrate(500);				
 				if (isAudio) {
 					audioSpeaker.play(Uri.parse(response));
 					while(audioSpeaker.mPlayer.isPlaying()) {						
 					}
+					setState(State.STATE_EVALUATE_PHASE_ONE);
 				} else {
 					textSpeaker.speakAppendAndCallBack(response, "COMMENT");
 				}
-				//setState(State.STATE_EVALUATE_PHASE_ONE);
 				break;
 			}
 			case STATE_EVALUATE_PHASE_ONE : {
-				speak("请对本次回复做出评价，音量加为满意，音量减为不满意！");
+				speak("您是否满意?满意请按音量加,不满意请按音量减！");
 				break;
 			}
 			case STATE_EVALUATE_PHASE_TWO : {
-				speak("是否举报恶意回复，音量加为恶意，音量减为非恶意！");
+				speak("举报请按音量加,取消请按音量减！");
 				break;
 			}
 			default:
@@ -174,9 +179,6 @@ public class QEyesStateMachine implements MsgType {
 	}	
 	private void speak(String text) {
 		textSpeaker.speak(text);
-	}
-	private void speakBlocked(String text) {
-		textSpeaker.speakBlocked(text);
 	}
 	private boolean isSingleColor() {
 		return false;
