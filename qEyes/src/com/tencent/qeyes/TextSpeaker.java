@@ -10,6 +10,7 @@ import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.widget.Toast;
 
+@SuppressWarnings("deprecation")
 public class TextSpeaker implements
 TextToSpeech.OnUtteranceCompletedListener, TextToSpeech.OnInitListener, MsgType{
 	private Context context;
