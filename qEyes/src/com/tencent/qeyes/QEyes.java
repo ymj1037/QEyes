@@ -8,6 +8,7 @@ import com.tencent.qeyes.QEyesStateMachine.State;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
@@ -64,8 +65,8 @@ public class QEyes extends Activity implements MsgType {
 			switch (msg.what) {
 				case TTS_INITIAL_SUCCESS : {
 					//Log.v("-Test-", "接收到TTS_INITIAL_SUCCESS这个消息");
-					QEyes.qState.textSpeaker.speakBlocked("欢迎使用盲人辅助软件,您可以随时长按音量键退出程序!");
-					QEyes.qState.setState(State.STATE_INIT);			
+					QEyes.qState.textSpeaker.speakAndCallBack("欢迎使用盲人辅助软件,您可以随时长按音量键退出程序!", "INIT");
+					//QEyes.qState.setState(State.STATE_INIT);			
 					break;
 				}
 				case MSG_QUESTION_DISPATCHED : {
@@ -109,6 +110,11 @@ public class QEyes extends Activity implements MsgType {
 	}
 	
 	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		
+	}
+	
+	@Override
 	public void onStop() {
 		qState.textSpeaker.speakBlocked("程序切换至后台!");
 		super.onStop();
@@ -118,7 +124,9 @@ public class QEyes extends Activity implements MsgType {
 	private void init() {
 
 		uid = getUID(getApplicationContext());
-		qHttp = new QEyesHttpConnection(uid);
+		if (qHttp == null) {
+			qHttp = new QEyesHttpConnection(uid, qHandler);
+		}
 		
 		//在HOME键之后返回时可以不用重新初始化
 		if (qState == null) {
@@ -193,9 +201,11 @@ public class QEyes extends Activity implements MsgType {
 				public void onAutoFocus(boolean success, Camera camera) {
 					if (success) {
 						camera.takePicture(new ShutterCallback() {
+							@Override
 							public void onShutter() {
 							}
 						}, new PictureCallback() {
+							@Override
 							public void onPictureTaken(byte[] data, Camera c) {
 							}
 						}, new PictureCallback() {

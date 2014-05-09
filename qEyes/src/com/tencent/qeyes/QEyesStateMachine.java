@@ -142,6 +142,8 @@ public class QEyesStateMachine implements MsgType {
 				speak("收到志愿者回复!");
 				if (isAudio) {
 					audioSpeaker.play(Uri.parse(response));
+					while(audioSpeaker.mPlayer.isPlaying()) {						
+					}
 				} else {
 					textSpeaker.speakAppendAndCallBack(response, "COMMENT");
 				}

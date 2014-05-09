@@ -9,7 +9,6 @@ import android.os.Message;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.widget.Toast;
-import android.widget.SeekBar.OnSeekBarChangeListener;
 
 public class TextSpeaker implements
 TextToSpeech.OnUtteranceCompletedListener, TextToSpeech.OnInitListener, MsgType{
