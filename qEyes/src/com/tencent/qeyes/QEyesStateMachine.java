@@ -3,7 +3,6 @@ package com.tencent.qeyes;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import android.R.integer;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Message;
@@ -84,26 +83,14 @@ public class QEyesStateMachine implements MsgType {
 					@Override
 					public void run() {	
 						QEyesHttpResults result = qHttp.httpCheckAns();											
-						if (result.ret == 3) {
-							// 已被抢
+						if (result.ret == 3 || result.ret == 1) {
+							// 已被抢 或已回答
 							msg.what = MSG_QUESTION_DISPATCHED;
 							handler.sendMessage(msg);
 							t1.cancel();
-						} else if (result.ret == 1) {
-							// 已回答
-							if (result.type == 1) {
-								isAudio = true;
-							} else {
-								isAudio = false;
-							}
-							response = result.content;							
-							msg.what = MSG_QUESTION_ANSWERED;
-							//msg.what = MSG_QUESTION_DISPATCHED;
-							handler.sendMessage(msg);
-							t1.cancel();
-						} 										
+						}										
 					}
-				}, 2000, 2000);
+				}, 500, 2000);
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
 					@Override
@@ -112,7 +99,7 @@ public class QEyesStateMachine implements MsgType {
 						handler.sendMessage(msg);
 						t1.cancel();						
 					}
-				}, 10000);
+				}, 30000);
 				break;
 			}		
 			case STATE_WAITING_PHASE_TWO : {

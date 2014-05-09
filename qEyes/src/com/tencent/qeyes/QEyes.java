@@ -64,8 +64,8 @@ public class QEyes extends Activity implements MsgType {
 			switch (msg.what) {
 				case TTS_INITIAL_SUCCESS : {
 					//Log.v("-Test-", "接收到TTS_INITIAL_SUCCESS这个消息");
-					QEyes.qState.textSpeaker.speakAndCallBack("欢迎使用盲人辅助软件,您可以随时长按音量键退出程序!","INIT");
-					//QEyes.qState.setState(State.STATE_INIT);			
+					QEyes.qState.textSpeaker.speakBlocked("欢迎使用盲人辅助软件,您可以随时长按音量键退出程序!");
+					QEyes.qState.setState(State.STATE_INIT);			
 					break;
 				}
 				case MSG_QUESTION_DISPATCHED : {
@@ -73,9 +73,7 @@ public class QEyes extends Activity implements MsgType {
 					break;
 				}
 				case MSG_QUESTION_ANSWERED : {
-					//QEyes.qState.textSpeaker.speakBlocked("收到已回答的消息!");
 					QEyes.qState.setState(State.STATE_SPEAKING_RESULTS);
-					//QEyes.qState.setState(State.STATE_WAITING_PHASE_TWO);
 					break;
 				}
 				case MSG_SVR_TIMEOUT : {
@@ -113,17 +111,14 @@ public class QEyes extends Activity implements MsgType {
 	@Override
 	public void onStop() {
 		qState.textSpeaker.speakBlocked("程序切换至后台!");
-		//super.onStop();
+		super.onStop();
 	}
 	
 	@SuppressWarnings("deprecation")
 	private void init() {
 
-		//uid可能获取失败
-		uid = getIMSINumber(getApplicationContext());
-		if (uid == null) uid = "1";
-		//Log.v("-Activity-", uid + "");
-		qHttp = new QEyesHttpConnection(uid, qHandler);
+		uid = getUID(getApplicationContext());
+		qHttp = new QEyesHttpConnection(uid);
 		
 		//在HOME键之后返回时可以不用重新初始化
 		if (qState == null) {
@@ -223,7 +218,7 @@ public class QEyes extends Activity implements MsgType {
 									newOpts.inSampleSize = scale;//设置缩放比例
 									Bitmap bitmap = BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME, newOpts);
 									outStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
-									bitmap.compress(CompressFormat.JPEG, 50, outStream);	
+									bitmap.compress(CompressFormat.JPEG, 80, outStream);	
 									outStream.close();							
 									//Log.v("-Activity-", "图片压缩完成!");
 									
@@ -356,10 +351,14 @@ public class QEyes extends Activity implements MsgType {
 		shortPress = false;
 		return true;
 	}
-		
-	private String getIMSINumber(Context context) {
-		TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-		return telephonyManager.getDeviceId();
+		 
+	private String getUID(Context context) {
+		final String deviceId = ((TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
+	    if (deviceId != null) {
+	        return deviceId;
+	    } else {
+	        return android.os.Build.SERIAL;
+	    }
 	}
 }
 

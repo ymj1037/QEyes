@@ -68,7 +68,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		// 0:成功
 		// 其他:相应的错误信息	
 		
-		q_id = 2;
+		//q_id = 2;
 		String url = SERVER_URL;
 		url = url.concat(TERMINATE_URL).concat("?uid=")
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id));		
@@ -99,7 +99,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 
 	public QEyesHttpResults httpCheckAns() {
 		//向服务器询问结果
-		q_id =30;
+		//q_id =30;
 		String url = SERVER_URL;
 		url = url.concat(CHECK_ANS_URL).concat("?q_id=").concat(String.valueOf(q_id));
 		Log.v("-Http-", "Send CheckAns Request : " + url);
@@ -144,7 +144,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		// 2:满意 
 		// 1:不满意
 		// 0:恶意信息
-		q_id = 30;
+		//q_id = 30;
 		String url = SERVER_URL;
 		url = url.concat(COMMENT_URL).concat("?uid=")
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id))
