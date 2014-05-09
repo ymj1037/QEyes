@@ -19,8 +19,9 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 	private static final String TERMINATE_URL = "/client/terminateQues";
 	private static final String CHECK_ANS_URL = "/client/checkAns";
 	private static final String COMMENT_URL = "/client/comment";
+	static final int RETRY_TIMES = 2;
 	protected String uid;			//手机唯一标示
-	protected int q_id;
+	protected volatile int q_id;
 	protected Handler UIHandler;
 	
 	public QEyesHttpConnection(String uid, Handler UIHandler) {
@@ -34,12 +35,17 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		// 0:成功 并得到qid
 		// 其他:会有相应的错误提示
 		//return false;
-		
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(UPLOAD_URL);		
 		Log.v("-Http-", "Send Upload Request : " + url);
 		
 		String response = httpUpload(url, fileName, uid);
+		if (response == null && flag < RETRY_TIMES)
+		{
+			response = httpUpload(url, fileName, uid);
+			flag++;
+		}
 		Log.v("-Http-", "Upload Response: " + response);
 		
 		if (response != null)
@@ -71,13 +77,21 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		// 其他:相应的错误信息	
 		
 		//q_id = 2;
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(TERMINATE_URL).concat("?uid=")
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id));		
 		Log.v("-Http-", "Send Terminate Request : " + url);
-		
-		String response = httpGetResponse(url, 2);
+		q_id = 0;
+		String response = httpGetResponse(url);
 		Log.v("-Http-", "Terminate Response: " + response);
+		
+		if (response == null && flag < RETRY_TIMES)
+		{
+			response = httpGetResponse(url);
+			flag++;
+		}
+		
 		if (response != null)
 		{
 			JSONObject json = null;
@@ -86,7 +100,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 				int ret = json.getInt("ret");
 				String msg = json.getString("msg");	
 				if (ret == 0) {
-					Log.v("-Http-", "Terminate Success with qid : " + q_id);
+					Log.v("-Http-", "Terminate Success with url : " + url);
 					return true;
 				}
 				Log.v("-Http-", "Terminate Fail with msg : " + msg);
@@ -102,11 +116,12 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 	public QEyesHttpResults httpCheckAns() {
 		//向服务器询问结果
 		//q_id =30;
+		Log.v("-Http-", "CHeckAns qid：" + q_id);
 		String url = SERVER_URL;
 		url = url.concat(CHECK_ANS_URL).concat("?q_id=").concat(String.valueOf(q_id));
 		Log.v("-Http-", "Send CheckAns Request : " + url);
 		
-		String response = httpGetResponse(url, 0);
+		String response = httpGetResponse(url);
 		Log.v("-Http-", "CheckAns Response: " + response);		
 
 		QEyesHttpResults results = new QEyesHttpResults();
@@ -147,14 +162,22 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		// 1:不满意
 		// 0:恶意信息
 		//q_id = 30;
+		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(COMMENT_URL).concat("?uid=")
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id))
 		.concat("&score=").concat(String.valueOf(score));		
 		Log.v("-Http-", "Send Comment Request : " + url);
 		
-		String response = httpGetResponse(url, 2);
+		String response = httpGetResponse(url);
 		Log.v("-Http-", "Comment Response: " + response);
+		
+		if (response == null && flag < RETRY_TIMES)
+		{
+			response = httpGetResponse(url);
+			flag++;
+		}
+		
 		if (response != null)
 		{
 			JSONObject json = null;

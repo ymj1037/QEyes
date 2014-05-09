@@ -34,7 +34,6 @@ import android.util.Log;
 public class HttpConnection {
 	static final int CONNECTION_TIMEOUT = 3000;
 	static final int SO_TIMEOUT = 5000;
-	static final int RETRY_TIMES = 2;
 	
 	/**
 	 * 上传图片
@@ -45,7 +44,6 @@ public class HttpConnection {
 	 */
 	public String httpUpload(String url, String filePath, String uid) {		
 		String response = null;
-		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		HttpClient httpClient = new DefaultHttpClient();
 		try
 		{				   
@@ -96,13 +94,9 @@ public class HttpConnection {
 	 * @param uri
 	 * @return http response
 	 */
-	public String httpGetResponse(String uri, int retryTimes) {
+	public String httpGetResponse(String uri) {
 		String response = null;
-		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		HttpClient httpClient = new DefaultHttpClient();	
-		
-		if (retryTimes > RETRY_TIMES)
-			retryTimes = RETRY_TIMES;//重传次数不超过RETRY_TIMES
 		
 		try
 		{
@@ -141,7 +135,6 @@ public class HttpConnection {
 	 */
 	public String httpPostResponse(String uri, List<NameValuePair> params) {
 		String response = null;
-		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		HttpClient httpClient = new DefaultHttpClient();
 		HttpPost post = new HttpPost(uri);
 		try
