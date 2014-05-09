@@ -14,7 +14,7 @@ import android.net.Uri;
 
 public class AudioSpeaker {
 	private Context context;
-	private MediaPlayer mPlayer;
+	public MediaPlayer mPlayer;
 	
 	public AudioSpeaker(final Context context) {     
 		this.context = context;        
