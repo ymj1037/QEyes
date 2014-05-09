@@ -6,15 +6,9 @@
  */
 package com.tencent.qeyes;
 
-import android.R.integer;
 import android.content.Context;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
-
-/**
- * 用于播放语音的类
- */
 
 public class AudioSpeaker {
 	private Context context;
@@ -22,33 +16,32 @@ public class AudioSpeaker {
 		
 	public AudioSpeaker(final Context context) {     
 		this.context = context;        
-		}         
+	}   
+	
 	public void play(int rsid) {       
 		mPlayer = MediaPlayer.create(context, rsid);
 		mPlayer.start(); 
-		}
+	}
+	
+	// 播放本地音频
 	public void play(String filePath) {       
 		mPlayer = new MediaPlayer();
-		try
-		{	
+		try	{	
 			mPlayer.setDataSource(filePath);
 			mPlayer.prepare();
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			e.printStackTrace();
 		}		
 		mPlayer.start(); 
 	}
+	
+	// 播放URL语音
 	public void play(Uri uri) {       
 		mPlayer = new MediaPlayer();
-		try
-		{	
+		try	{	
 			mPlayer.setDataSource(context, uri);
 			mPlayer.prepare();
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			e.printStackTrace();
 		}		
 		mPlayer.start(); 

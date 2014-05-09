@@ -31,7 +31,6 @@ import android.os.Message;
 import android.os.StrictMode;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
@@ -57,12 +56,12 @@ public class QEyes extends Activity implements MsgType {
 
 	SurfaceView sView;
 	SurfaceHolder surfaceHolder;
-	int screenWidth, screenHeight;
 	Camera camera;
-	boolean isPreview = false;
 	QEyesHttpConnection qHttp;
-	String uid;
 	boolean shortPress = false;
+	boolean isPreview = false;
+	int screenWidth, screenHeight;
+	String uid;
 	MainHandler qHandler = new MainHandler();	
 
 	static QEyesStateMachine qState;
@@ -72,7 +71,7 @@ public class QEyes extends Activity implements MsgType {
 		public void handleMessage(Message msg) {			
 			switch (msg.what) {
 				case TTS_INITIAL_SUCCESS : {
-					QEyes.qState.textSpeaker.speakAndCallBack("您好,您可以随时长按音量加键退出程序!", "INIT");	
+					QEyes.qState.textSpeaker.speakAndCallBack("您好,您可以随时长按音量键退出程序!", "INIT");	
 					break;
 				}
 				case MSG_QUESTION_DISPATCHED : {
@@ -90,18 +89,14 @@ public class QEyes extends Activity implements MsgType {
 				case MSG_TS: {
 					if (qState.curState == State.STATE_EVALUATE_STOP)
 						break;
-					Log.v("-Activity-", "Handler处理  MSG_TS");
-					Log.v("-Activity-", "Handler处理" + msg.obj +"123");
 					String strMsg = (String)msg.obj;
-					if (strMsg.equals("INIT"))
-					{
-						Log.v("-Activity-", "Handler处理" + msg.obj);
+					if (strMsg.equals("INIT")) {
 						QEyes.qState.setState(State.STATE_INIT);
-					}
-					else if (strMsg.equals("COMMENT"))
+					} else if (strMsg.equals("COMMENT")) {
 						QEyes.qState.setState(State.STATE_EVALUATE_PHASE_ONE);
-					else if (strMsg.equals("EXIT"))
+					} else if (strMsg.equals("EXIT")) {
 						System.exit(0);
+					}
 					break;
 				}					
 				default : {
@@ -117,14 +112,13 @@ public class QEyes extends Activity implements MsgType {
 		init();
 	}
 	
+	// 重写这个函数来禁止摄像头自动旋转
 	@Override
 	public void onConfigurationChanged(Configuration newConfig) {
-		
 	}
 	
 	@Override
 	public void onStop() {
-		//qState.setState(State.STATE_EVALUATE_STOP);
 		qState.textSpeaker.speakBlocked("程序切换至后台!");
 		super.onStop();
 	}
@@ -150,6 +144,7 @@ public class QEyes extends Activity implements MsgType {
 			WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.main);
 		
+		// 允许http请求运行于主线程
 		if (android.os.Build.VERSION.SDK_INT > 9) {
 		    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 		    StrictMode.setThreadPolicy(policy);
@@ -175,11 +170,14 @@ public class QEyes extends Activity implements MsgType {
 			@Override
 			public void surfaceCreated(SurfaceHolder holder) {
 				if (!isPreview)	{
+					// 默认打开后置摄像头
 					camera = Camera.open(0);  
+					// 设置相机的预览角度
 					camera.setDisplayOrientation(90);
 				}
 				if (camera != null && !isPreview) {
 					try {
+						//设计拍照参数
 						Camera.Parameters parameters = camera.getParameters();
 						parameters.setPreviewSize(screenWidth, screenHeight);
 						parameters.setPreviewFpsRange(4, 10);
@@ -208,7 +206,7 @@ public class QEyes extends Activity implements MsgType {
 	/**
 	 * 设置系统播放器音量
 	 */
-	public void setSystemMusicVolume() {
+	private void setSystemMusicVolume() {
 		// 音频管理对象
 		AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 		int volume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -218,7 +216,7 @@ public class QEyes extends Activity implements MsgType {
 			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (minVolume + maxVolume)/2, 0);
 	}
 	
-	public void capture(View source) {
+	private void capture(View source) {
 		if (camera != null) {
 			camera.autoFocus(new AutoFocusCallback() {
 				@Override
@@ -227,26 +225,32 @@ public class QEyes extends Activity implements MsgType {
 						camera.takePicture(new ShutterCallback() {
 							@Override
 							public void onShutter() {
+								//按下快门时的处理
 							}
 						}, new PictureCallback() {
 							@Override
 							public void onPictureTaken(byte[] data, Camera c) {
+								//原始图片的处理
 							}
 						}, new PictureCallback() {
 							@Override
 							public void onPictureTaken(byte[] data, Camera camera) {
 								Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
+								
+								//拍照所得应旋转90度
 								Matrix matrix = new Matrix();  
 								matrix.preRotate(90); 
 								bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), 
 										bm.getHeight(), matrix, true);
 													
 								FileOutputStream outStream = null;
+								
+								//自适应调整压缩比例
 								int scale = 1;
 								while (scale * scale < data.length / 1024 / 128) {
 									scale *= 2;
 								}			
-								Log.v("-Activity-", scale + "");
+								
 								try {
 									outStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
 									bm.compress(CompressFormat.JPEG, 100, outStream);
@@ -254,10 +258,15 @@ public class QEyes extends Activity implements MsgType {
 									BitmapFactory.Options newOpts = new BitmapFactory.Options();									
 									newOpts.inJustDecodeBounds = false;
 									newOpts.inSampleSize = scale;//设置缩放比例
+									
+									//一次压缩
 									Bitmap bitmap = BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME, newOpts);
 									outStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
+									
+									//二次压缩
 									bitmap.compress(CompressFormat.JPEG, 80, outStream);	
-									outStream.close();										
+									outStream.close();
+									
 								} catch (IOException e) {
 									e.printStackTrace();
 								}	
@@ -272,22 +281,20 @@ public class QEyes extends Activity implements MsgType {
 		}
 	}
 	
-	//Only Listen VOlUME and HOME	
+	// 监听音量键	
 	@Override
-	public boolean onKeyLongPress(int keyCode, KeyEvent event) {
-		if (qState.curState == State.STATE_EVALUATE_EXIT)
-		{
+	public boolean onKeyLongPress(int keyCode, KeyEvent event) {		
+		//通过shortPress变量来区分 长按 和 按下
+		if (qState.curState == State.STATE_EVALUATE_EXIT) {
 			shortPress = false;
 			return true;
 		}
 		if (keyCode == KeyEvent.KEYCODE_VOLUME_UP 
 				|| keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
 			shortPress = false;
-			if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-				qHttp.httpTerminate();
-				qState.textSpeaker.speakAndCallBack("程序退出,欢迎您下次使用!", "EXIT");
-				qState.setState(State.STATE_EVALUATE_EXIT);
-			}
+			qHttp.httpTerminate();
+			qState.textSpeaker.speakAndCallBack("程序退出,欢迎您下次使用!", "EXIT");
+			qState.setState(State.STATE_EVALUATE_EXIT);
 		}
 		return true;
 	}
@@ -310,7 +317,6 @@ public class QEyes extends Activity implements MsgType {
 			if (shortPress)	{
 				switch (qState.curState) {
 					case STATE_INIT : {
-						Log.v("-Test-", "State 进入INIT ");
 						if (keyCode == KeyEvent.KEYCODE_VOLUME_UP 
 								|| keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
 							capture(sView);
@@ -389,13 +395,14 @@ public class QEyes extends Activity implements MsgType {
 		return true;
 	}
 		 
-	private String getUID(Context context) {
+	// 返回IMSI号或者SERIAL号,作为设备唯一的UID
+	private String getUID(final Context context) {
 		final String deviceId = ((TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
-	    if (deviceId != null) {
-	        return deviceId;
-	    } else {
-	        return android.os.Build.SERIAL;
-	    }
+		if (deviceId != null) {
+		    return deviceId;
+		} else {
+		    return android.os.Build.SERIAL;
+		}
 	}
 }
 

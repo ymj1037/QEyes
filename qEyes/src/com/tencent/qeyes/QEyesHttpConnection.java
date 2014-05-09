@@ -21,7 +21,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 	private static final String COMMENT_URL = "/client/comment";
 	static final int RETRY_TIMES = 2;
 	protected String uid;			//手机唯一标示
-	protected volatile int q_id;
+	protected volatile int q_id;	//一定要用volatile关键字，保证其值在不同线程之间的一致性
 	protected Handler UIHandler;
 	
 	public QEyesHttpConnection(String uid, Handler UIHandler) {
@@ -30,99 +30,86 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 		this.UIHandler = UIHandler;
 	}
 
+	// 向服务器上传图片，自带重传机制
 	public boolean httpUpload(String fileName) {
-		// 向服务器上传图片	
+			
 		// 0:成功 并得到qid
 		// 其他:会有相应的错误提示
-		//return false;
+		
 		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(UPLOAD_URL);		
-		Log.v("-Http-", "Send Upload Request : " + url);
 		
 		String response = httpUpload(url, fileName, uid);
-		if (response == null && flag < RETRY_TIMES)
-		{
+		if (response == null && flag < RETRY_TIMES) {
 			response = httpUpload(url, fileName, uid);
 			flag++;
 		}
-		Log.v("-Http-", "Upload Response: " + response);
 		
-		if (response != null)
-		{
+		if (response != null) {
 			JSONObject json = null;
 			try {
 				json = new JSONObject(response);
 				int ret = json.getInt("ret");
 				String msg = json.getString("msg");	
-				if (ret == 0)
-				{			
+				if (ret == 0) {			
 					q_id = json.getInt("q_id");
-					Log.v("-Http-", "Upload Success with qid : " + q_id);
 					return true;					
 				}
 				Log.v("-Http-", "Upload Fail with msg : " + msg);
 			} catch (JSONException e) {
 				e.printStackTrace();
-				Log.v("-Http-", "Upload Fail: Exception");
 				return false;
 			}
 		}
 		return false;
 	}
 	
+	// 向服务器发送放弃消息，自带重传机制
 	public boolean httpTerminate() {
-		// 向服务器发送放弃消息
+		
 		// 0:成功
 		// 其他:相应的错误信息	
 		
-		//q_id = 2;
 		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(TERMINATE_URL).concat("?uid=")
-		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id));		
-		Log.v("-Http-", "Send Terminate Request : " + url);
+		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id));	
+		
+		//url构造好即刻将q_id置0
 		q_id = 0;
 		String response = httpGetResponse(url);
-		Log.v("-Http-", "Terminate Response: " + response);
 		
-		if (response == null && flag < RETRY_TIMES)
-		{
+		if (response == null && flag < RETRY_TIMES) {
 			response = httpGetResponse(url);
 			flag++;
 		}
 		
-		if (response != null)
-		{
+		if (response != null) {
 			JSONObject json = null;
 			try {
 				json = new JSONObject(response);
 				int ret = json.getInt("ret");
 				String msg = json.getString("msg");	
 				if (ret == 0) {
-					Log.v("-Http-", "Terminate Success with url : " + url);
 					return true;
 				}
 				Log.v("-Http-", "Terminate Fail with msg : " + msg);
 			} catch (JSONException e) {
 				e.printStackTrace();
-				Log.v("-Http-", "Terminate Fail: Exception");
 				return false;
 			}
 		}
 		return false;
 	}
 
+	// 向服务器询问问题的状态
 	public QEyesHttpResults httpCheckAns() {
-		//向服务器询问结果
-		//q_id =30;
-		Log.v("-Http-", "CHeckAns qid：" + q_id);
+		
 		String url = SERVER_URL;
 		url = url.concat(CHECK_ANS_URL).concat("?q_id=").concat(String.valueOf(q_id));
-		Log.v("-Http-", "Send CheckAns Request : " + url);
 		
-		String response = httpGetResponse(url);
-		Log.v("-Http-", "CheckAns Response: " + response);		
+		String response = httpGetResponse(url);	
 
 		QEyesHttpResults results = new QEyesHttpResults();
 		if (response != null)
@@ -132,8 +119,7 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 				json = new JSONObject(response);
 				results.ret = json.getInt("ret");
 				results.msg = json.getString("msg");
-				if (results.ret == 1)
-				{
+				if (results.ret == 1) {
 					JSONObject data = json.getJSONObject("data");
 					
 					results.volunteer = data.getString("volunteer");
@@ -143,56 +129,46 @@ public class QEyesHttpConnection extends HttpConnection implements MsgType {
 					} else {
 						results.content = data.getString("content");
 					}					
-					Log.v("-Http-", "CheckAns Succeed! ");
 				} else {
 					Log.v("-Http-", "CheckAns Fail with msg: "+ results.msg);
 				}
 			} catch (JSONException e) {
 				e.printStackTrace();
-				Log.v("-Http-", "CheckAns Fail: Exception");
 				return null;
 			}
 		}
 		return results;
 	}
 
+	// 上报评价给服务器  自带重传机制
 	public boolean httpComment(int score) {
-		// 上报评价给服务器  
-		// 2:满意 
-		// 1:不满意
-		// 0:恶意信息
-		//q_id = 30;
+		// 2:满意   1:不满意   0:恶意信息
+		
 		int flag = 0;//重传次数，不超过 RETRY_TIMES
 		String url = SERVER_URL;
 		url = url.concat(COMMENT_URL).concat("?uid=")
 		.concat(uid).concat("&q_id=").concat(String.valueOf(q_id))
-		.concat("&score=").concat(String.valueOf(score));		
-		Log.v("-Http-", "Send Comment Request : " + url);
+		.concat("&score=").concat(String.valueOf(score));
 		
 		String response = httpGetResponse(url);
-		Log.v("-Http-", "Comment Response: " + response);
 		
-		if (response == null && flag < RETRY_TIMES)
-		{
+		if (response == null && flag < RETRY_TIMES) {
 			response = httpGetResponse(url);
 			flag++;
 		}
 		
-		if (response != null)
-		{
+		if (response != null) {
 			JSONObject json = null;
 			try {
 				json = new JSONObject(response);
 				int ret = json.getInt("ret");
 				String msg = json.getString("msg");	
 				if (ret == 0) {
-					Log.v("-Http-", "Comment Success with score: " + score);
 					return true;
 				}
 				Log.v("-Http-", "Comment Fail with msg : "+ msg);
 			} catch (JSONException e) {
 				e.printStackTrace();
-				Log.v("-Http-", "Comment Fail: Exception");
 				return false;
 			}
 		}

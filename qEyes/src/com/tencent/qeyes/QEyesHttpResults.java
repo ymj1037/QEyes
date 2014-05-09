@@ -1,5 +1,5 @@
 /**
- * Http协议返回结构
+ * Http协议返回结构体
  * Author: minjieyu
  * Date:2014/5.9
  * Version:1.0
