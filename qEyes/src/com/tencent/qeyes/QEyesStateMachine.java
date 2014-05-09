@@ -3,10 +3,12 @@ package com.tencent.qeyes;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.app.Service;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.Vibrator;
 
 /**
  * Qeyes状态机和辅助函数
@@ -35,6 +37,7 @@ public class QEyesStateMachine implements MsgType {
 	public String response;
 	public boolean isAudio;
 	public QEyes.MainHandler handler;
+	public Vibrator vibrator;
 	
 	QEyesStateMachine(QEyesHttpConnection qHttp, QEyes.MainHandler handler) {
 		curState = State.STATE_ZERO;
@@ -42,6 +45,7 @@ public class QEyesStateMachine implements MsgType {
 		audioSpeaker = null;
 		response = null;
 		isAudio = false;
+		vibrator = null;
 		this.qHttp = qHttp;
 		this.handler = handler;
 	}
@@ -49,6 +53,7 @@ public class QEyesStateMachine implements MsgType {
 	public void setSpeaker(Context context) {
 		textSpeaker = new TextSpeaker(context, handler);
 		audioSpeaker = new AudioSpeaker(context);
+		vibrator = (Vibrator) context.getSystemService(Service.VIBRATOR_SERVICE);
 	}
 	
 	public boolean setState(State s) {
@@ -139,9 +144,7 @@ public class QEyesStateMachine implements MsgType {
 				break;
 			}	
 			case STATE_SPEAKING_RESULTS : {
-				speak("收到回复!");
-				SystemClock.sleep(1000);
-				//改为振动
+				vibrator.vibrate(500);				
 				if (isAudio) {
 					audioSpeaker.play(Uri.parse(response));
 					while(audioSpeaker.mPlayer.isPlaying()) {						

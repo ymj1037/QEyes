@@ -13,6 +13,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
@@ -88,7 +89,7 @@ public class QEyes extends Activity implements MsgType {
 					else if (strMsg.equals("COMMENT"))
 						QEyes.qState.setState(State.STATE_EVALUATE_PHASE_ONE);
 					else if (strMsg.equals("EXIT"))
-						System.exit(0);
+						System.exit(90);
 					break;
 				}					
 				default : {
@@ -207,7 +208,11 @@ public class QEyes extends Activity implements MsgType {
 						}, new PictureCallback() {
 							@Override
 							public void onPictureTaken(byte[] data, Camera camera) {
-								final Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
+								Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
+								Matrix matrix = new Matrix();  
+								matrix.preRotate(90); 
+								bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), 
+										bm.getHeight(), matrix, true);
 													
 								FileOutputStream outStream = null;
 								int scale = 1;
