@@ -78,11 +78,7 @@ public class QEyesStateMachine implements MsgType {
 				break;
 			}
 			case STATE_PHOTO_ACQUIRED : {
-				if (isSingleColor()) {
-					speak("识别为单色,重新拍摄请按音量加,上传请按音量减!");
-				} else {
-					speak("已拍摄,上传请按音量加,取消请按音量减!");
-				}
+				speak("上传请按音量加,取消请按音量减!");				
 				break;
 			}
 			case STATE_UPLOAD_FAILURE : {
@@ -183,9 +179,5 @@ public class QEyesStateMachine implements MsgType {
 	}	
 	private void speak(String text) {
 		textSpeaker.speak(text);
-	}
-	//留给单色识别的接口
-	private boolean isSingleColor() {
-		return false;
 	}
 }

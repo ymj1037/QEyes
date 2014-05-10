@@ -8,6 +8,17 @@ package com.tencent.qeyes;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import com.tencent.qeyes.R;
 import com.tencent.qeyes.QEyesStateMachine.State;
@@ -31,6 +42,7 @@ import android.os.Message;
 import android.os.StrictMode;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
@@ -105,6 +117,34 @@ public class QEyes extends Activity implements MsgType {
 			}
 		}
 	}
+	
+	// OpenCV库加载并初始化成功后的回调函数
+		private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+
+			@Override
+			public void onManagerConnected(int status) {
+				switch (status) {
+				case BaseLoaderCallback.SUCCESS:
+					Log.v("-Activity-", "成功加载");
+					break;
+				default:
+					super.onManagerConnected(status);
+					Log.v("-Activity-", "加载失败");
+					break;
+				}
+
+			}
+		};
+		
+		@Override
+		protected void onResume() {
+			super.onResume();
+			// load OpenCV engine and init OpenCV library
+			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_4,
+					getApplicationContext(), mLoaderCallback);
+			Log.v("-Activity-", "onResume sucess load OpenCV...");
+
+		}
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -242,6 +282,13 @@ public class QEyes extends Activity implements MsgType {
 								matrix.preRotate(90); 
 								bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), 
 										bm.getHeight(), matrix, true);
+								
+								ColorInfo colorInfo = colorDetect(BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME));				
+								if (colorInfo.isPure == true) {
+									qState.textSpeaker.speakBlocked("已拍摄,照片为大面积" + colorInfo.detail);
+								} else {
+									qState.textSpeaker.speakBlocked("已拍摄");
+								}
 													
 								FileOutputStream outStream = null;
 								
@@ -265,8 +312,9 @@ public class QEyes extends Activity implements MsgType {
 									
 									//二次压缩
 									bitmap.compress(CompressFormat.JPEG, 50, outStream);	
-									outStream.close();
+									outStream.close();								
 									
+									qState.setState(State.STATE_PHOTO_ACQUIRED);									
 								} catch (IOException e) {
 									e.printStackTrace();
 								}	
@@ -320,7 +368,7 @@ public class QEyes extends Activity implements MsgType {
 						if (keyCode == KeyEvent.KEYCODE_VOLUME_UP 
 								|| keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
 							capture(sView);
-							qState.setState(State.STATE_PHOTO_ACQUIRED);
+							//qState.setState(State.STATE_PHOTO_ACQUIRED);
 						}
 						break;
 					}
@@ -402,6 +450,141 @@ public class QEyes extends Activity implements MsgType {
 		    return deviceId;
 		} else {
 		    return android.os.Build.SERIAL;
+		}
+	}
+	//单色识别的接口
+	private ColorInfo colorDetect(Bitmap bitmap) {
+		Mat rgbMat = new Mat();
+		bitmap = bitmap.copy(Bitmap.Config.RGB_565, false);
+		Utils.bitmapToMat(bitmap, rgbMat);			
+		int ret = isPureColor(rgbMat, 10, 0.85, 0.1, 100, 600, 0.7);
+		Log.v("-Activity-", ret + "");
+		if (ret == 0) {
+			return new ColorInfo(true, "白色");
+		} else if (ret == 1) {
+			return new ColorInfo(true, "灰色");
+		} else if (ret == 2) {
+			return new ColorInfo(true, "黑色");
+		} else if (ret > 330 || (ret <= 30 && ret > 0)) {
+			return new ColorInfo(true, "红色");
+		} else if (ret > 30 && ret <= 90) {
+			return new ColorInfo(true, "黄色");
+		} else if (ret > 90 && ret <= 150) {
+			return new ColorInfo(true, "绿色");
+		} else if (ret > 150 && ret <= 210) {
+			return new ColorInfo(true, "青色");
+		} else if (ret > 210 && ret <= 270) {
+			return new ColorInfo(true, "蓝色");
+		} else if (ret > 270 && ret <= 330) {
+			return new ColorInfo(true, "紫色");
+		} else {
+			return new ColorInfo();
+		}
+	}	
+	
+	//判断单色属性
+	private int isPureColor(Mat image, double lim1, double lim2, double lim3,
+			double lim4, double lim5, double lim6) {
+		Mat rawImg = new Mat();
+		Mat rawResizeImg = new Mat();
+		Mat resizeImg = new Mat();
+		Mat hsvImg = new Mat();
+		Mat inputImgFloat = new Mat();
+		Imgproc.cvtColor(image, rawImg, Imgproc.COLOR_RGBA2RGB, 3);
+		Imgproc.resize(rawImg, rawResizeImg, new Size(128, 128));
+		Imgproc.GaussianBlur(rawResizeImg, resizeImg, new Size(9, 9), 2);
+		// check black and white in RGB
+		int countWhite = 0, countBlack = 0, countTotal = 0, countGray = 0;
+		for (int i = 0; i < resizeImg.rows(); i++) {
+			for (int j = 0; j < resizeImg.cols(); j++) {
+				byte[] px = new byte[3];
+				resizeImg.get(i, j, px);
+				int tmpmax = Math.max(Math.max((int) px[0], (int) px[1]),
+						(int) px[2]);
+				int tmpmin = Math.min(Math.min((int) px[0], (int) px[1]),
+						(int) px[2]);
+				int delta = tmpmax - tmpmin;
+				int weight;
+				if (i >= 32 && i < 96 && j >= 32 && j < 96) {
+					weight = 2;
+				} else {
+					weight = 1;
+				}
+				double deltaRatio = 0;
+				if (tmpmax != 0)
+					deltaRatio = delta * 1.0 / tmpmax;
+				countTotal++;
+				if (deltaRatio < lim3 || delta <= 2) {// gray black or white
+					int tmpSum = (int) px[0] + (int) px[1] + (int) px[2];
+					if (tmpSum < lim4) {
+						countBlack++;
+					} else if (tmpSum > lim5) {
+						countWhite++;
+					} else {
+						countGray++;
+					}
+				}
+			}
+		}
+		if (countBlack * 1.0 / countTotal > lim6) {
+			return 2;
+		}
+		if (countGray * 1.0 / countTotal > lim6) {
+			return 1;
+		}
+		if (countWhite * 1.0 / countTotal > lim6) {
+			return 0;
+		}
+		// Check by RGB stddev
+		boolean stdpure = false;
+		MatOfDouble meanVal = new MatOfDouble();
+		MatOfDouble stdDev = new MatOfDouble();
+		Core.meanStdDev(resizeImg, meanVal, stdDev);
+		if (stdDev.toArray()[0] < lim1) {
+			stdpure = true;
+		}
+		// check by HSV histgram
+		resizeImg.convertTo(inputImgFloat, CvType.CV_32FC3, 1 / 255.0);
+		Imgproc.cvtColor(inputImgFloat, hsvImg, Imgproc.COLOR_RGB2HSV);
+		Imgproc.resize(image, resizeImg, new Size(128, 128));
+		int[] hist = new int[360];
+		Arrays.fill(hist, 0);
+		int total = 0;
+		for (int i = 0; i < hsvImg.rows(); i++) {
+			for (int j = 0; j < hsvImg.cols(); j++) {
+				float[] px = new float[3];
+				hsvImg.get(i, j, px);
+				if (i >= 32 && i < 96 && j >= 32 && j < 96) {
+					hist[(int) px[0]] += 2;
+					total += 2;
+				} else {
+					hist[(int) px[0]]++;
+					total++;
+				}
+			}
+		}
+		int regionWidth = 15;
+		int max = 0, maxInd = 7, sum = 0;
+		for (int i = 1; i <= regionWidth; i++) {
+			sum += hist[i];
+		}
+		if (sum > max)
+			max = sum;
+		for (int i = 2; i <= 360; i++) {
+			sum -= hist[i - 1];
+			sum += hist[(i + regionWidth - 1) % 360];
+			if (sum > max) {
+				max = sum;
+				maxInd = (i + 7) % 360;
+			}
+		}
+		if (stdpure) {
+			return maxInd + 1000;
+		} else {
+			if (max * 1.0 / total > lim2) {
+				return maxInd + 1000;
+			} else
+				return -1;
 		}
 	}
 }
