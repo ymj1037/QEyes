@@ -12,6 +12,8 @@ import java.util.TimerTask;
 import android.os.Handler;
 import android.os.Message;
 
+
+// 本类主要负责http的异步实现，用于未来的程序拓展
 public class QEyesHttpAsync extends QEyesHttpConnection {
 	private static final int TIME_OUT = 5000;
 

@@ -13,7 +13,6 @@ import android.app.Service;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Message;
-import android.os.SystemClock;
 import android.os.Vibrator;
 import android.util.Log;
 
@@ -93,7 +92,8 @@ public class QEyesStateMachine implements MsgType {
 			case STATE_WAITING_PHASE_ONE : {
 				speak("已上传,请稍候!");
 				Log.v("-Http-", "CHeckAns case qid：" + qHttp.q_id);
-				final Timer t1 = new Timer();
+				final Timer t1 = new Timer();				
+				//为timer分配两个任务，一为论询，二为超时
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
 					@Override
@@ -122,6 +122,7 @@ public class QEyesStateMachine implements MsgType {
 			case STATE_WAITING_PHASE_TWO : {
 				speak("对方正在输入,请稍候!");
 				final Timer t1 = new Timer();
+				//为timer分配两个任务，一为论询，二为超时
 				t1.schedule(new TimerTask() {					
 					Message msg = new Message();					
 					@Override
@@ -183,6 +184,7 @@ public class QEyesStateMachine implements MsgType {
 	private void speak(String text) {
 		textSpeaker.speak(text);
 	}
+	//留给单色识别的接口
 	private boolean isSingleColor() {
 		return false;
 	}

@@ -264,7 +264,7 @@ public class QEyes extends Activity implements MsgType {
 									outStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
 									
 									//二次压缩
-									bitmap.compress(CompressFormat.JPEG, 80, outStream);	
+									bitmap.compress(CompressFormat.JPEG, 50, outStream);	
 									outStream.close();
 									
 								} catch (IOException e) {
