@@ -283,7 +283,7 @@ public class QEyes extends Activity implements MsgType {
 								bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), 
 										bm.getHeight(), matrix, true);
 								
-								ColorInfo colorInfo = colorDetect(BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME));				
+								ColorInfo colorInfo = colorDetect(BitmapFactory.decodeFile(getFilesDir() + "/" + FILE_NAME));	
 								if (colorInfo.isPure == true) {
 									qState.textSpeaker.speakBlocked("已拍摄,照片为大面积" + colorInfo.detail);
 								} else {
@@ -455,7 +455,7 @@ public class QEyes extends Activity implements MsgType {
 	//单色识别的接口
 	private ColorInfo colorDetect(Bitmap bitmap) {
 		Mat rgbMat = new Mat();
-		bitmap = bitmap.copy(Bitmap.Config.RGB_565, false);
+		//bitmap = bitmap.copy(Bitmap.Config.RGB_565, false);
 		Utils.bitmapToMat(bitmap, rgbMat);			
 		int ret = isPureColor(rgbMat, 10, 0.85, 0.1, 100, 600, 0.7);
 		Log.v("-Activity-", ret + "");
@@ -465,17 +465,17 @@ public class QEyes extends Activity implements MsgType {
 			return new ColorInfo(true, "灰色");
 		} else if (ret == 2) {
 			return new ColorInfo(true, "黑色");
-		} else if (ret > 330 || (ret <= 30 && ret > 0)) {
+		} else if (ret > 1330 || (ret <= 1030 && ret > 0)) {
 			return new ColorInfo(true, "红色");
-		} else if (ret > 30 && ret <= 90) {
+		} else if (ret > 1030 && ret <= 1090) {
 			return new ColorInfo(true, "黄色");
-		} else if (ret > 90 && ret <= 150) {
+		} else if (ret > 1090 && ret <= 1150) {
 			return new ColorInfo(true, "绿色");
-		} else if (ret > 150 && ret <= 210) {
+		} else if (ret > 1150 && ret <= 1210) {
 			return new ColorInfo(true, "青色");
-		} else if (ret > 210 && ret <= 270) {
+		} else if (ret > 1210 && ret <= 1270) {
 			return new ColorInfo(true, "蓝色");
-		} else if (ret > 270 && ret <= 330) {
+		} else if (ret > 1270 && ret <= 1330) {
 			return new ColorInfo(true, "紫色");
 		} else {
 			return new ColorInfo();
